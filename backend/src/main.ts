@@ -4,6 +4,7 @@ import cors from "cors";
 import { env } from "./utils/config";
 import { APIError } from "./utils/error";
 import { createDBConnection } from "./utils/db";
+import { authRouter } from "./modules/auth/router";
 
 
 createDBConnection()
@@ -30,8 +31,11 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
         message: "Welcome to Book Review App",
         data: null,
         isSuccess: true,
-    });;
+    });
 })
+
+//authentication routes
+app.use("/api/auth", authRouter );
 
 //Global Error Handler
 
