@@ -1,16 +1,18 @@
-
-import { comparePassword, hashPassword, generateToken } from "../../utils/auth";
+import { comparePassword, generateToken, hashPassword } from "../../utils/auth";
 import { APIError } from "../../utils/error";
 import { UserModel } from "./model";
-import {  TLoginControllerInput, TRegisterControllerInput } from "./validation";
+import { TuserLoginSchema, TuserRegisterSchema } from "./validation";
 
-
-export async function createUserService(input: TRegisterControllerInput) {
-  const { email, username, password } = input;
+export type Tuser = {
+  userId: string;
+  role: string;
+};
+export async function createUserservice(input: TuserRegisterSchema) {
+  const { email, username, password, role } = input;
 
   const user = await UserModel.findOne({ email });
   if (user) {
-    throw APIError.conflict("User already exists");
+    throw APIError.conflict("user email already exist");
   }
 
   const hashedPassword = await hashPassword(password);
@@ -19,39 +21,44 @@ export async function createUserService(input: TRegisterControllerInput) {
     email,
     username,
     password: hashedPassword,
+    role,
   });
-
   await newUser.save();
 
   return newUser;
 }
 
-export async function loginService(input: TLoginControllerInput) {
-  const { email, password } = input;
+export async function loginService(input: TuserLoginSchema) {
+  const { email, password} = input;
   const user = await UserModel.findOne({ email });
   if (!user) {
-    throw APIError.unauthorized("Invalid credentials");
+    throw APIError.unauthorized("Invalid username or password");
   }
 
   const isMatch = await comparePassword(password, user.password);
   if (!isMatch) {
-    throw APIError.unauthorized("Invalid credentials");
+    throw APIError.unauthorized("Invalid username or password");
   }
 
+  // if (user.role !== "admin") {
+  //   throw APIError.unauthorized("Invalid role");
+  // }
   const token = generateToken({
-  id: user.id.toString(),
-  username: user.username,
-  email: user.email,
-});
-
-return{
-  user: {
     id: user._id.toString(),
     username: user.username,
     email: user.email,
-  },
-  token,
-};
+    role: user.role,
+  });
+
+  return {
+    user: {
+      id: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    },
+    token,
+  };
 }
 
 export async function getUserById(id: string) {
@@ -63,6 +70,24 @@ export async function getUserById(id: string) {
   return user;
 }
 
-export async function logoutService() {
+export async function updateUserRoleservice(input: Tuser) {
+  const { role, userId } = input;
+
+  const user = await UserModel.findOne({ _id: userId });
+
+  if (!user) {
+    throw APIError.notFound("user not found");
+  }
+
+  const result = await UserModel.findByIdAndUpdate(userId, {
+    $set: {
+      id: userId,
+      role: role,
+    },
+  });
+
+  
+
   return true;
 }
+
