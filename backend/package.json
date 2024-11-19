@@ -6,7 +6,7 @@
     "dev": "tsx --watch src/main.ts",
     "build": "tsc",
     "postinstall": "tsc", 
-    "start": "node dist/main.js"  
+    "start": "node dist/src/main.js"  
   },
   "keywords": [],
   "author": "",
