@@ -1,21 +1,24 @@
 import { error } from "console";
 import { APIError } from "../../utils/error";
-import { TaddBookSchema, TUpdateBookControllerInput } from "./validation";
 import { bookModel } from "./model";
+import { TaddBookSchema } from "./validation";
 
 export async function bookService(input: TaddBookSchema) {
-  const { title, author, description, genres } = input;
-  const book = await bookModel.findOne({ title });
+  const { Title, author, description, genres, image } = input;
+
+  const book = await bookModel.findOne({ Title });
   if (book) {
-    throw APIError.conflict("Book already exist");
+    throw APIError.conflict("Book already exists");
   }
 
   const newBook = new bookModel({
-    title,
+    Title,
     author,
     description,
     genres,
+    image: image || "/default-book.jpg", // Use a default image if none is provided
   });
+
   await newBook.save();
   return newBook;
 }
@@ -30,41 +33,30 @@ export async function getBookByIdService(_id: string) {
   return book;
 }
 
-export async function deleteBookService(BookId: string) {
-  // console.log("Before",BookId);
-
-  const deletebook = await bookModel.findByIdAndDelete(BookId);
-
-  // console.log("After",book);
-
-  if (!deletebook) {
-    throw APIError.notFound("Book Not Exist");
+export async function updateBookServices(
+  bookId: string,
+  input: TaddBookSchema
+) {
+  const { Title, author, description, genres, image } = input;
+  const book = await bookModel.findById(bookId);
+  if (!book) {
+    throw APIError.notFound("book does not exist");
   }
-  await bookModel.deleteOne({ _id: BookId });
+  book.Title = Title;
+  book.author = author;
+  book.description = description;
+  book.genres = genres;
+  book.image = image;
 
-  return deletebook;
+  // await book.replaceOne({ _id: bookId });
+  await book.save();
+  return book;
 }
 
-
-export async function getBookUpdateService(
-  bookId: string,
-  input: TUpdateBookControllerInput
-) {
-  const { title, genres, author, description } = input;
-  // console.log("in service", bookId);
-
-  // Use findByIdAndUpdate with the update fields and { new: true } to return the updated document
-  const book = await bookModel.findByIdAndUpdate(
-    bookId,
-    { title, genres, author, description },
-    { new: true } // This returns the updated book
-  );
-
-  // console.log("after model_service", book);
-
+export async function deleteBookServices(id: string) {
+  const book = await bookModel.findByIdAndDelete(id);
   if (!book) {
-    throw APIError.notFound("Book not found");
+    throw APIError.notFound("book not found");
   }
-
   return book;
 }

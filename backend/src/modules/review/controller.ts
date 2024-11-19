@@ -1,126 +1,162 @@
+// controller.ts
 import { Request, Response, NextFunction } from "express";
 import {
   AddReviewControllerSchema,
   UpdateReviewControllerSchema,
+  TReviewCtx,
 } from "./validation";
 import {
   createReviewService,
-  getReviewsByBookIdService,
   updateReviewService,
+  getReviewsByBookIdService,
+  deleteReviewService,
 } from "./service";
-import { APIError } from "../../utils/error";
 
+// Define interface for request parameters
+interface ReviewParams {
+  bookId?: string;
+  reviewId?: string;
+}
 
-export async function addReviewController(
-  req: Request,
+// Add Review Controller
+export const addReviewController = async (
+  req: Request<ReviewParams>,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> => {
   try {
-    const body = req.body;
+    const input = AddReviewControllerSchema.parse(req.body);
     const bookId = req.params.bookId;
-    const userId = req.user.id;
 
-    const { success, error, data } = AddReviewControllerSchema.safeParse(body);
-    if (!success) {
-      const errors = error.flatten().fieldErrors;
+    if (!bookId) {
       res.status(400).json({
-        message: "Invalid request",
-        data: null,
+        message: "Book ID is required",
         isSuccess: false,
-        errors: errors,
+        data: null,
       });
       return;
     }
 
-    const review = await createReviewService(
-      {
-        userId,
-        bookId,
-      },
-      data
-    );
+    const ctx: TReviewCtx = {
+      userId: req.user.id,
+      bookId,
+      role: req.user.role,
+    };
+
+    const review = await createReviewService(ctx, {
+      ...input,
+      username: req.user.username,
+    });
 
     res.status(201).json({
-      message: "Review created sucessfully",
+      message: "Review added successfully",
       isSuccess: true,
       data: review,
     });
   } catch (error) {
-    if (error instanceof APIError) {
-      next(error);
-    } else {
-      next(new APIError(500, (error as Error).message));
-    }
+    next(error);
   }
-}
+};
 
-export async function updateReviewController(
-  req: Request,
+// Update Review Controller
+export const updateReviewController = async (
+  req: Request<ReviewParams>,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> => {
   try {
-    const body = req.body;
-
-    const userId = req.user.id;
+    const input = UpdateReviewControllerSchema.parse(req.body);
     const reviewId = req.params.reviewId;
 
-    const { success, error, data } =
-      UpdateReviewControllerSchema.safeParse(body);
-    if (!success) {
-      const errors = error.flatten().fieldErrors;
+    if (!reviewId) {
       res.status(400).json({
-        message: "Invalid request",
-        data: null,
+        message: "Review ID is required",
         isSuccess: false,
-        errors: errors,
+        data: null,
       });
       return;
     }
 
-    const review = await updateReviewService(
-      reviewId,
-      {
-        userId,
-        bookId: "",
-      },
-      data
-    );
+    const ctx: TReviewCtx = {
+      userId: req.user.id,
+      bookId: "", // This will be fetched from the review in the service
+      role: req.user.role,
+    };
 
-    res.status(201).json({
-      message: "Review updated sucessfully",
+    const updatedReview = await updateReviewService(reviewId, ctx, input);
+
+    res.json({
+      message: "Review updated successfully",
       isSuccess: true,
-      data: review,
+      data: updatedReview,
     });
   } catch (error) {
-    if (error instanceof APIError) {
-      next(error);
-    } else {
-      next(new APIError(500, (error as Error).message));
-    }
+    next(error);
   }
-}
+};
 
-export async function getReviewsByBookIdController(
-  req: Request,
+// Get Reviews Controller
+export const getReviewsByBookIdController = async (
+  req: Request<ReviewParams>,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> => {
   try {
     const bookId = req.params.bookId;
 
+    if (!bookId) {
+      res.status(400).json({
+        message: "Book ID is required",
+        isSuccess: false,
+        data: null,
+      });
+      return;
+    }
+
     const reviews = await getReviewsByBookIdService(bookId);
-    res.status(200).json({
-      message: "Reviews retrieved successfully",
+
+    res.json({
+      message: "Reviews fetched successfully",
       isSuccess: true,
       data: reviews,
     });
   } catch (error) {
-    if (error instanceof APIError) {
-      next(error);
-    } else {
-      next(new APIError(500, (error as Error).message));
+    next(error);
+  }
+};
+
+// Delete Review Controller
+export const deleteReviewController = async (
+  req: Request<ReviewParams>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const reviewId = req.params.reviewId;
+
+    if (!reviewId) {
+      res.status(400).json({
+        message: "Review ID is required",
+        isSuccess: false,
+        data: null,
+      });
+      return;
     }
+
+    const ctx: TReviewCtx = {
+      userId: req.user.id,
+      bookId: "", // This will be fetched from the review in the service
+      role: req.user.role,
+    };
+
+    const deletedReview = await deleteReviewService(reviewId, ctx);
+
+    res.json({
+      message: "Review deleted successfully",
+      isSuccess: true,
+      data: deletedReview,
+    });
+  } catch (error) {
+    next(error);
   }
 }

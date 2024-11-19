@@ -1,21 +1,23 @@
 import { NextFunction, Request, Response } from "express";
 import { APIError } from "../../utils/error";
 import { TTokenPayload, verifyToken } from "../../utils/auth";
-import { userLoginSchema, userRegisterSchema } from "./validation";
 import {
   createUserservice,
   getUserById,
   loginService,
   updateUserRoleservice,
 } from "./service";
-
+import { LoginControllerSchema, RegisterControllerSchema } from "./validation";
+//SA
 export async function registerController(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
-    const { success, error, data } = userRegisterSchema.safeParse(req.body);
+    const { success, error, data } = RegisterControllerSchema.safeParse(
+      req.body
+    );
     // console.log("data:", data);
     if (!success) {
       const errors = error.flatten().fieldErrors;
@@ -52,10 +54,10 @@ export async function loginController(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   try {
     const body = req.body;
-    const { success, error, data } = userLoginSchema.safeParse(body);
+    const { success, error, data } = LoginControllerSchema.safeParse(body);
     console.log("data:", data);
     if (!success) {
       const errors = error.flatten().fieldErrors;
@@ -95,7 +97,7 @@ export async function meController(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   try {
     if (!req.user) {
       res.status(401).json({
@@ -130,7 +132,7 @@ export async function logoutController(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   try {
     res.clearCookie("token");
 
@@ -148,72 +150,11 @@ export async function logoutController(
   }
 }
 
-export async function checkAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const cookie = req.headers["cookie"];
-  console.log("cookie", cookie);
-
-  if (!cookie || !cookie.includes("token") || !cookie.includes("=")) {
-    res.status(401).json({
-      message: "cookie not found or invalid",
-      data: null,
-      isSuccess: false,
-    });
-    return;
-  }
-
-  const token = cookie.split("=")[1];
-  console.log("token:", token);
-
-  if (!token) {
-    res.status(401).json({
-      message: "token not found or invalid",
-      data: null,
-      isSuccess: false,
-    });
-    return;
-  }
-  // validate the cookie token
-  const verifyTokenOutput = verifyToken(token);
-  console.log("verifyTokenOutput", verifyTokenOutput);
-
-  if (!verifyTokenOutput.isValid) {
-    res.status(401).json({
-      error: verifyTokenOutput.message,
-      isSuccess: false,
-      data: null,
-    });
-    return;
-  }
-  //   console.log("verifyTokenOutput", verifyTokenOutput);
-
-  if (!verifyTokenOutput.payload) {
-    res.status(401).json({
-      message: "Invalid token",
-      isSuccess: false,
-      data: null,
-    });
-    return;
-  }
-  const payload = verifyTokenOutput.payload as TTokenPayload;
-
-  req.user = {
-    id: payload.id,
-    username: payload.username,
-    email: payload.email,
-    role: payload.role,
-  };
-  next();
-}
-
 export async function permitAdmin(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   if (req.user.role !== "admin") {
     res.status(401).json({
       message: "Access denial, You need to be admin to get access",
@@ -227,12 +168,12 @@ export async function updateRoleController(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   try {
     const role = req.body.role;
     const userId = req.body.userId;
 
-    console.log("checking", userId);
+    // console.log("checking", userId);
 
     const userData = await updateUserRoleservice({
       userId: userId || "",

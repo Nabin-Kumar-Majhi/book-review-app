@@ -1,15 +1,29 @@
 import { z } from "zod";
 
-export const userRegisterSchema = z.object({
+export const RegisterControllerSchema = z.object({
   email: z.string().email(),
-  username: z.string(),
-  password: z.string().min(6).max(15),
-  role: z.enum(["admin", "user"]).default("user"),
+  username: z.string().min(3).max(20),
+  password: z.string().min(6).max(25),
+  role: z.enum(["admin","user"]).default("user"),
 });
-export type TuserRegisterSchema = z.TypeOf<typeof userRegisterSchema>;
+export type TRegisterControllerInput = z.TypeOf<
+  typeof RegisterControllerSchema
+>;
 
-export const userLoginSchema = z.object({
+export const LoginControllerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(6).max(25),
 });
-export type TuserLoginSchema = z.TypeOf<typeof userLoginSchema>;
+export type TLoginControllerInput = z.TypeOf<typeof LoginControllerSchema>;
+
+export const LogoutControllerSchema = z.object({});
+export type TLogoutControllerInput = z.TypeOf<typeof LogoutControllerSchema>;
+
+export const UpdateControllerUserRoleSchema = z.object({
+  userId: z.string(),
+  role: z.string(),
+});
+
+export type TUpadateUserRole = z.TypeOf<
+  typeof UpdateControllerUserRoleSchema
+>;

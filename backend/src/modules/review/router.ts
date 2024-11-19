@@ -1,17 +1,22 @@
 import { Router } from "express";
-import { checkAuth } from "../auth/controller";
 import {
   addReviewController,
+  deleteReviewController,
   getReviewsByBookIdController,
   updateReviewController,
 } from "./controller";
+import { checkAuth } from "../auth/middleware";
 
 function createReviewRouter() {
   const router = Router();
-  router.post("/:bookId", checkAuth, addReviewController);
-  router.post("/update/:reviewId", checkAuth, updateReviewController);
 
-  router.get("/:bookId", getReviewsByBookIdController);
+  router.post("/addReview/:bookId", checkAuth, addReviewController);
+
+  router.put("/updateReview/:reviewId", checkAuth, updateReviewController);
+
+  router.get("/getReview/:bookId", checkAuth, getReviewsByBookIdController);
+
+  router.delete("/deleteReview/:reviewId", checkAuth, deleteReviewController);
 
   return router;
 }

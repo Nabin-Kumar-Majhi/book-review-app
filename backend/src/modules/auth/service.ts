@@ -1,13 +1,11 @@
 import { comparePassword, generateToken, hashPassword } from "../../utils/auth";
 import { APIError } from "../../utils/error";
 import { UserModel } from "./model";
-import { TuserLoginSchema, TuserRegisterSchema } from "./validation";
+import { TLoginControllerInput, TRegisterControllerInput, TUpadateUserRole } from "./validation";
 
-export type Tuser = {
-  userId: string;
-  role: string;
-};
-export async function createUserservice(input: TuserRegisterSchema) {
+
+
+export async function createUserservice(input: TRegisterControllerInput) {
   const { email, username, password, role } = input;
 
   const user = await UserModel.findOne({ email });
@@ -28,7 +26,7 @@ export async function createUserservice(input: TuserRegisterSchema) {
   return newUser;
 }
 
-export async function loginService(input: TuserLoginSchema) {
+export async function loginService(input: TLoginControllerInput) {
   const { email, password} = input;
   const user = await UserModel.findOne({ email });
   if (!user) {
@@ -70,7 +68,7 @@ export async function getUserById(id: string) {
   return user;
 }
 
-export async function updateUserRoleservice(input: Tuser) {
+export async function updateUserRoleservice(input: TUpadateUserRole) {
   const { role, userId } = input;
 
   const user = await UserModel.findOne({ _id: userId });

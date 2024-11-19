@@ -1,13 +1,16 @@
 import cookieParser from "cookie-parser";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
+import path from "path";
 import { env } from "./utils/config";
 import { APIError } from "./utils/error";
 import { createDBConnection } from "./utils/db";
 import { authRouter } from "./modules/auth/router";
 import { bookRouter } from "./modules/book/router";
 import { reviewRouter } from "./modules/review/router";
+import { multerErrorHandler } from "./modules/auth/middleware";
 
+// Connect to Database
 createDBConnection()
   .then(() => {
     console.log("Database connected successfully");
@@ -18,34 +21,44 @@ createDBConnection()
 
 const app = express();
 
+// Enable CORS
 app.use(
   cors({
-    origin: "*", // ACCESS-CONTROL-ALLOW-ORIGIN:http://localhost:5173
-    credentials: true, // Access-Control-Allow-Credentials: allow
+    origin: ["http://localhost:5173"], // ACCESS-CONTROL-ALLOW-ORIGIN:http://localhost:5173
+    credentials: true, // Access-Control-Allow-Credentials: true
   })
 );
 
+// Middleware for JSON and Cookies
 app.use(express.json());
 app.use(cookieParser());
 
+// Serve Static Files
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+// Test Route
 app.get("/", (req: Request, res: Response, next: NextFunction) => {
   res.json({
-    message: "welcome to Book review app",
+    message: "Welcome to Book Review App",
     data: null,
     isSuccess: true,
   });
   return;
 });
 
-// authentication routes
+// Authentication Routes
 app.use("/api/auth", authRouter);
 
-// book router
+// Book Routes
 app.use("/api/books", bookRouter);
 
-//Review Routes
+// Review Routes
 app.use("/api/reviews", reviewRouter);
 
+// Error Handling Middleware (Including Multer Errors)
+app.use(multerErrorHandler); // Global error handler for file uploads
+
+// General Error Handling Middleware
 app.use((error: APIError, req: Request, res: Response, next: NextFunction) => {
   console.log(error);
 
@@ -59,12 +72,13 @@ app.use((error: APIError, req: Request, res: Response, next: NextFunction) => {
   }
 
   res.status(500).json({
-    message: "something went wrong on the server",
+    message: "Something went wrong on the server",
     data: null,
     isSuccess: false,
   });
 });
 
+// Start Server
 app.listen(env.PORT, () => {
-  console.log(`Searver starting at port ${env.PORT}`);
+  console.log(`Server starting at port ${env.PORT}`);
 });

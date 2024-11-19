@@ -1,14 +1,14 @@
 import { NextFunction, Request, Response } from "express";
 import { APIError } from "../../utils/error";
-import { addBookSchema, UpdateBookControllerSchema } from "./validation";
+import { addBookSchema } from "./validation";
 import {
   bookService,
-  deleteBookService,
+  deleteBookServices,
   getAllBookService,
   getBookByIdService,
-  getBookUpdateService,
+  updateBookServices,
 } from "./service";
-import { log } from "console";
+import { getReviewsByBookIdService } from "../review/service";
 
 export async function addBookController(
   req: Request,
@@ -16,14 +16,15 @@ export async function addBookController(
   next: NextFunction
 ) {
   try {
+    console.log("Request body:", req.body); // Debugging incoming data
     const body = req.body;
+
     const { success, error, data } = addBookSchema.safeParse(body);
 
     if (!success) {
       const errors = error.flatten().fieldErrors;
       res.status(400).json({
-        message: "Invalid request",
-        data: null,
+        message: "Invalid request data",
         isSuccess: false,
         errors: errors,
       });
@@ -32,11 +33,12 @@ export async function addBookController(
 
     const bookData = await bookService(data);
     res.status(200).json({
-      message: "Book been added successfully",
+      message: "Book added successfully",
       isSuccess: true,
       data: {
+        image: bookData.image ,
         id: bookData._id,
-        title: bookData.title,
+        Title: bookData.Title,
         author: bookData.author,
         description: bookData.description,
         genres: bookData.genres,
@@ -46,10 +48,12 @@ export async function addBookController(
     if (e instanceof APIError) {
       next(e);
     } else {
-      next(new APIError(500, (e as Error).message));
+      console.error("Error adding book:", e); // Logging the error for debugging
+      next(new APIError(500, "Internal Server Error"));
     }
   }
 }
+
 
 export async function getAllBookController(
   req: Request,
@@ -61,7 +65,7 @@ export async function getAllBookController(
     res.status(200).json({
       message: "all books",
       isSuccess: true,
-      data: result
+      data: result,
     });
   } catch (e) {
     if (e instanceof APIError) {
@@ -78,11 +82,11 @@ export async function getBookByIdController(
   next: NextFunction
 ) {
   try {
-    const id = req.params.BookId;
+    const id = req.params.id;
 
     if (!id) {
       res.status(400).json({
-        message: "Book ID not provided",
+        message: "id not found",
         data: null,
         isSuccess: false,
       });
@@ -90,67 +94,13 @@ export async function getBookByIdController(
     }
 
     const result = await getBookByIdService(id);
-    if (!result) {
-      res.status(404).json({
-        message: "Book Not Found",
-        data: null,
-        isSuccess: false,
-      });
-    } else {
-      res.status(200).json({
-        message: "Book found successfully",
-        data: {
-          _id: result._id,
-          title: result.title,
-          genres: result.genres,
-          author: result.author,
-          description: result.description,
-          created_at: result.created_at,
-          __v: result.__v
-        },
-        isSuccess: true,
-      });
-    }
-  } catch (e) {
-    if (e instanceof APIError) {
-      next(e);
-    } else {
-      next(new APIError(500, (e as Error).message));
-    }
-  }
-}
+    const review = await getReviewsByBookIdService(id);
 
-export async function deleteBookController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const BookId = req.params.BookId;
-    console.log("boookid: in controller", BookId);
-    const result = await deleteBookService(BookId);
-
-    if (!result) {
-      res.status(404).json({
-        message: "Book Not Deleted",
-        data: null,
-        isSuccess: false,
-      });
-    } else {
-      res.status(200).json({
-        message: "Book Deleted successfully",
-        data: {
-          _id: result._id,
-          title: result.title,
-          genres: result.genres,
-          author: result.author,
-          description: result.description,
-          created_at: result.created_at,
-          __v: result.__v
-        },
-        isSuccess: true,
-      });
-    }
+    res.status(200).json({
+      message: "book found successfully",
+      data: { result, review },
+      isSuccess: true,
+    });
   } catch (e) {
     if (e instanceof APIError) {
       next(e);
@@ -167,43 +117,55 @@ export async function updateBookController(
 ) {
   try {
     const body = req.body;
-    const bookId = req.params.BookId;
+    const bookId = req.params.bookId;
 
-    console.log("at controller", bookId);
-
-    const { success, error, data } = UpdateBookControllerSchema.safeParse(body);
+    const { success, error, data } = addBookSchema.safeParse(body);
     if (!success) {
       const errors = error.flatten().fieldErrors;
       res.status(400).json({
         message: "Invalid request",
         data: null,
         isSuccess: false,
-        errors: errors, 
+        errors: errors,
       });
       return;
     }
+    const book = await updateBookServices(bookId, data);
 
-    const book = await getBookUpdateService(bookId, data);
-
-    // Define the order of the response data
-    res.status(201).json({
-      message: "Book updated successfully",
+    res.status(200).json({
+      message: "book update successfully",
       isSuccess: true,
-      data: {
-        _id: book._id,
-        title: book.title,
-        genres: book.genres,
-        author: book.author,
-        description: book.description,
-        created_at: book.created_at,
-        __v: book.__v
-      }
+      data: book,
     });
-  } catch (error) {
-    if (error instanceof APIError) {
-      next(error);
+  } catch (e) {
+    if (e instanceof APIError) {
+      next(e);
     } else {
-      next(new APIError(500, (error as Error).message));
+      next(new APIError(500, (e as Error).message));
+    }
+  }
+}
+
+export async function deleteBookController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const bookId = req.params.bookId;
+
+    const book = await deleteBookServices(bookId);
+
+    res.status(200).json({
+      message: "book delete successfully",
+      isSuccess: true,
+      data: book,
+    });
+  } catch (e) {
+    if (e instanceof APIError) {
+      next(e);
+    } else {
+      next(new APIError(500, (e as Error).message));
     }
   }
 }
