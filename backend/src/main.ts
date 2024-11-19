@@ -24,8 +24,13 @@ const app = express();
 // Enable CORS
 app.use(
   cors({
-    origin: ["http://localhost:5173"], // ACCESS-CONTROL-ALLOW-ORIGIN:http://localhost:5173
-    credentials: true, // Access-Control-Allow-Credentials: true
+    origin: [
+      "http://localhost:5173", 
+      "https://book-review-app-five.vercel.app"
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
