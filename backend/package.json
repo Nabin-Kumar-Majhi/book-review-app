@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "tsx --watch src/main.ts",
     "build": "tsc",
-    "postinstall": "tsc", 
-    "start": "node dist/src/main.js"  
+    "postinstall": "tsc",
+    "start": "node dist/src/main.js"
   },
   "keywords": [],
   "author": "",
@@ -37,7 +37,7 @@
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   },
-  "engines": {    
+  "engines": {
     "node": ">=14.0.0"
   }
 }
